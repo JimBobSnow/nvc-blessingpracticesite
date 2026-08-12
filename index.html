@@ -204,6 +204,22 @@ const LEARN_TREE = bundle.learnTree;
 const SYSTEM_PROMPT = bundle.systemPrompt;
 
 const PROGRESS_TAG_RE = /\[\[PROGRESS:\s*(correct|incorrect|partial)\s*\]\]/i;
+const NUMBERED_LINE_RE = /^\s*\d+[.)]\s/;
+
+function stripEmphasisFromNumberedLines(text) {
+  // Deterministic backstop: prompt instructions alone don't reliably stop
+  // weaker models from bolding/italicizing the answer inside a numbered
+  // drill practice sentence, which hands it to the user before they try.
+  return text.split("\n").map(line => {
+    if (NUMBERED_LINE_RE.test(line)) {
+      line = line.replace(/\*\*(.*?)\*\*/g, "$1");
+      line = line.replace(/\*(.*?)\*/g, "$1");
+      line = line.replace(/__(.*?)__/g, "$1");
+      line = line.replace(/_(.*?)_/g, "$1");
+    }
+    return line;
+  }).join("\n");
+}
 
 let messages = [];
 let progress = JSON.parse(localStorage.getItem("nvc_progress") || "[]");
@@ -297,6 +313,10 @@ async function callModel() {
   if (match) {
     result = match[1].toLowerCase();
     reply = reply.replace(PROGRESS_TAG_RE, "").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  if (currentPracticeType === "Step-by-step guessing drill") {
+    reply = stripEmphasisFromNumberedLines(reply);
   }
 
   messages.push({ role: "assistant", content: reply });
