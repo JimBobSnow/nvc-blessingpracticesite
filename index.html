@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NVC + Blessing Practice Coach</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --bg: #1e1e1e;
+  --panel: #242424;
+  --input-bg: #2a2a2a;
+  --fg: #e0e0e0;
+  --accent: #8ab4f8;
+  --accent-dark: #638cd2;
+  --muted: #999999;
+  --select-bg: #3a4a63;
+  --correct: #8fce9a;
+  --incorrect: #e78585;
+  --partial: #e0c268;
+  --border: #3a3a3a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  height: 100%; }
+body { display: flex; flex-direction: column; height: 100vh; }
+
+header { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+header h1 { margin: 0; font-size: 16px; color: var(--accent); }
+
+nav { display: flex; gap: 4px; padding: 8px 12px 0 12px; border-bottom: 1px solid var(--border); }
+nav button { background: #2a2a2a; color: var(--fg); border: none; padding: 8px 16px;
+  border-radius: 6px 6px 0 0; cursor: pointer; font-weight: 600; font-size: 13px; }
+nav button.active { background: var(--bg); color: var(--accent); }
+
+main { flex: 1; overflow: hidden; display: flex; }
+.tab { display: none; flex: 1; overflow: auto; padding: 16px; flex-direction: column; }
+.tab.active { display: flex; }
+
+.panel { border: 1px solid var(--border); border-radius: 8px; background: var(--panel);
+  margin-bottom: 12px; padding: 12px; }
+.panel > h3 { margin: 0 0 10px 0; color: var(--accent); font-size: 13px; text-transform: none; }
+
+label { display: block; font-size: 13px; margin: 8px 0 4px 0; }
+select, input[type=text] {
+  background: var(--input-bg); color: var(--fg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 8px; font-size: 13px; min-width: 280px;
+}
+button.btn {
+  background: var(--accent-dark); color: #fff; border: none; border-radius: 4px;
+  padding: 7px 14px; font-size: 13px; cursor: pointer; font-weight: 600;
+}
+button.btn:hover { background: var(--accent); }
+button.btn.secondary { background: #3a3a3a; }
+button.btn.secondary:hover { background: #4a4a4a; }
+.btn-row { margin-top: 10px; display: flex; gap: 8px; }
+
+#practice-tab { flex-direction: column; }
+#chat-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#chat-area { flex: 1; overflow-y: auto; padding: 10px; }
+.msg { margin-bottom: 12px; white-space: pre-wrap; line-height: 1.45; font-size: 14px; }
+.msg.user { color: var(--accent); }
+.msg.coach { color: var(--fg); }
+.msg.system { color: var(--muted); font-style: italic; }
+
+#input-row { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+#chat-input {
+  flex: 1; background: var(--input-bg); color: var(--fg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px; font-size: 14px; resize: vertical; min-height: 56px;
+  font-family: inherit;
+}
+
+#learn-tab { flex-direction: row; gap: 12px; }
+#learn-topics { width: 280px; flex-shrink: 0; overflow-y: auto; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--panel); padding: 6px; }
+#learn-content { flex: 1; overflow-y: auto; padding: 4px 16px; }
+.topic-cat { font-weight: 700; color: var(--accent); padding: 8px 8px 4px 8px; font-size: 13px; }
+.topic-item { padding: 6px 8px; margin-left: 8px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.topic-item:hover { background: var(--input-bg); }
+.topic-item.active { background: var(--select-bg); color: #fff; }
+#learn-content h2 { color: var(--accent); font-size: 17px; margin-top: 4px; }
+#learn-content h4 { color: var(--accent); font-size: 13px; margin: 14px 0 4px 0; }
+#learn-content p { line-height: 1.55; font-size: 14px; }
+#learn-content ul { line-height: 1.55; font-size: 14px; }
+.example-quote { color: var(--accent); font-style: italic; margin: 10px 0 2px 0; font-size: 13.5px; }
+.example-note { margin: 0 0 10px 0; font-size: 13.5px; }
+
+#progress-tab { flex-direction: column; }
+#progress-summary { font-size: 13px; line-height: 1.6; }
+table.progress-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.progress-table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border);
+  color: var(--accent); position: sticky; top: 0; background: var(--panel); }
+table.progress-table td { padding: 6px 8px; border-bottom: 1px solid #2c2c2c; }
+.result-correct { color: var(--correct); font-weight: 600; }
+.result-incorrect { color: var(--incorrect); font-weight: 600; }
+.result-partial { color: var(--partial); font-weight: 600; }
+#progress-table-wrap { flex: 1; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+
+.note { color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NVC + Blessing Practice Coach</h1>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="practice-tab">Practice Session</button>
+  <button class="tab-btn" data-tab="learn-tab">Learning Library</button>
+  <button class="tab-btn" data-tab="progress-tab">Progress</button>
+  <button class="tab-btn" data-tab="settings-tab">Settings</button>
+</nav>
+
+<main>
+  <div id="practice-tab" class="tab active">
+    <div class="panel">
+      <h3>Session Setup</h3>
+      <label for="practice-type">1. What do you want to practice?</label>
+      <select id="practice-type"></select>
+
+      <label for="difficulty">2. Difficulty level</label>
+      <select id="difficulty"></select>
+
+      <div id="drill-level-row" style="display:none;">
+        <label for="drill-level">3. Drill level (guessing drill only)</label>
+        <select id="drill-level"></select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="start-practice-btn">Start Practice</button>
+        <button class="btn secondary" id="new-session-btn">New Session (clear chat)</button>
+      </div>
+    </div>
+
+    <div class="panel" id="chat-panel">
+      <h3>Conversation</h3>
+      <div id="chat-area"></div>
+      <div id="input-row">
+        <textarea id="chat-input" placeholder="Type your response... (Enter to send, Shift+Enter for a new line)"></textarea>
+        <button class="btn" id="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="learn-tab" class="tab">
+    <div id="learn-topics"></div>
+    <div id="learn-content"></div>
+  </div>
+
+  <div id="progress-tab" class="tab">
+    <div class="panel">
+      <h3>Summary</h3>
+      <div id="progress-summary"></div>
+    </div>
+    <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <div style="display:flex; justify-content: space-between; align-items:center;">
+        <h3 style="margin:0;">Answer Log (most recent first)</h3>
+        <button class="btn secondary" id="clear-progress-btn">Clear Progress</button>
+      </div>
+      <div id="progress-table-wrap" style="margin-top:10px;">
+        <table class="progress-table">
+          <thead><tr><th>Time</th><th>Practice Type</th><th>Difficulty / Level</th><th>Result</th></tr></thead>
+          <tbody id="progress-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-tab" class="tab">
+    <div class="panel">
+      <h3>Model</h3>
+      <p class="note" style="margin-top:0;">
+        This page runs on a shared, no-card, free-tier OpenRouter account restricted to
+        $0-cost models only. Pick which free model to use below — if one is being
+        rate-limited, try another, or use "Auto" to let OpenRouter route to whichever
+        free model is available.
+      </p>
+      <label for="model-select">Model</label>
+      <select id="model-select"></select>
+      <div class="note">
+        Because this is a shared free account, heavy traffic may hit rate limits.
+        Nothing you type here is sent anywhere except OpenRouter's chat API for
+        generating the coach's replies. Your practice progress is stored only in
+        your own browser (localStorage), not on any server.
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="application/json" id="bundle-data">{"practiceTypes": ["Empathic listening", "NVC self-expression", "Blessing", "NVC + blessing together", "Real-life situation", "Step-by-step guessing drill"], "difficulties": ["Beginner", "Intermediate", "Advanced"], "drillLevels": ["Level 1 \u2014 Charged word or phrase", "Level 2 \u2014 Add Function", "Level 3 \u2014 Add Feeling family", "Level 4 \u2014 Add Need direction", "Level 5 \u2014 Add Permission to not know", "Level 6 \u2014 Add Check against their words", "Capstone \u2014 all six steps together"], "defaultModel": "anthropic/claude-sonnet-5", "learnTree": [{"id": "overview", "label": "Overview", "content": [["para", "This app teaches two complementary skills: Nonviolent Communication (NVC) \u2014 both empathic listening and honest self-expression \u2014 and the practice of blessing others, using a four-step framework."], ["para", "NVC has two directions. Empathic listening turns your attention toward another person's experience with curiosity and compassion. Self-expression means communicating your own observations, feelings, needs, and requests honestly, without blame or judgment."], ["para", "Blessing is a separate but complementary skill: helping someone feel secure in your love, helping them see a genuine virtue in themselves, affirming that virtue as part of their identity, and connecting that identity to a positive future \u2014 without denying present pain."], ["para", "The goal is not memorizing formulas. It's becoming someone who naturally listens deeply, stays curious, communicates honestly, and helps people feel secure, seen, and hopeful."], ["subheading", "Core principle"], ["bullets", ["Connection before correction.", "Understanding before advice.", "Love before identity.", "Identity before possibility."]]]}, {"id": "modes", "label": "Practice Modes (what each menu option does)", "content": [["para", "These match the \"Practice type\" dropdown on the Practice Session tab. Pick a topic on the left to see what actually happens in that mode."]], "children": [{"id": "modes.empathic", "label": "Empathic listening", "content": [["para", "The coach plays someone going through something emotionally difficult. Your job is to respond with empathy \u2014 not fix, advise, defend, correct, or cheerlead. You try first; the coach won't hand you the \"correct\" feeling or need in advance."], ["para", "After you respond, the coach explains how well the guess connected and what alternative feelings/needs were also plausible."]]}, {"id": "modes.expression", "label": "NVC self-expression", "content": [["para", "The coach gives you a conflict scenario. You practice building the four components yourself: Observation, Feeling, Need, Request."], ["para", "The coach then evaluates specifically:"], ["bullets", ["Did the observation contain judgments?", "Were the feelings real, or thoughts disguised as feelings?", "Were the needs distinct from strategies?", "Was the request concrete and doable \u2014 or secretly a demand?", "Did the overall message preserve connection?"]]]}, {"id": "modes.blessing", "label": "Blessing", "content": [["para", "The coach gives a scenario involving someone who has failed, been hurt, or is stuck in a painful identity. You practice the four-step blessing framework: security, virtue, identity, positive outcome."], ["para", "You attempt it yourself first \u2014 the coach won't just hand you the finished blessing."]]}, {"id": "modes.combined", "label": "NVC + blessing together", "content": [["para", "Combined scenarios where you practice empathy first \u2014 connecting with what's alive in the other person \u2014 and only move into blessing afterward. Blessing is never used to rush past or deny real pain."]]}, {"id": "modes.reallife", "label": "Real-life situation", "content": [["para", "You bring an actual situation from your life. The coach won't immediately write the perfect response for you. It walks you through discovery questions first, on both the NVC side and the blessing side, and only helps refine your own words afterward."], ["subheading", "NVC discovery questions"], ["bullets", ["What happened?", "What did you actually observe?", "What are you feeling?", "What need is underneath it?", "What would you like to request?", "What might the other person be feeling?", "What might they be needing?"]], ["subheading", "Blessing discovery questions"], ["bullets", ["What happened to this person?", "What might they currently be attached to or defined by?", "How can you make them feel secure in your love?", "What virtues do you genuinely see?", "What virtue might they have difficulty seeing?", "What does that reveal about their identity?", "What positive outcomes could flow from that identity?"]]]}, {"id": "modes.drill", "label": "Step-by-step guessing drill", "content": [["para", "A progressive way to learn how to decode a sentence into a feeling and a need, one small skill at a time instead of all six at once."], ["para", "Pick a starting Level (1\u20136) in the \"Drill level\" dropdown \u2014 each level explains the step, shows worked examples, then gives you a small round of practice sentences with coaching. You decide when you're ready to move to the next level; nothing advances automatically. Once all six have been practiced individually, choose \"Capstone\" to run the full six-step sequence unscaffolded on a new sentence."], ["para", "See the \"6-Step Guessing Drill\" section for what each step actually means, with examples."]]}]}, {"id": "listening", "label": "Empathic Listening Skills", "content": [["para", "The underlying skills used in \"Empathic listening\" mode, and in any moment where someone needs to feel heard."]], "children": [{"id": "listening.goal", "label": "The Goal", "content": [["para", "When listening empathically, the goal is NOT to fix, give advice, defend yourself, correct their interpretation, explain why they're wrong, cheerlead, minimize their pain, immediately tell them what to do, turn the conversation toward yourself, interrogate, or diagnose."], ["para", "The goal is to connect with what is alive in the other person. Listen for: what happened, what are they feeling, what might they be needing."], ["para", "You don't have to agree with someone's interpretation in order to empathize with the feelings and needs underneath it."]]}, {"id": "listening.guessing", "label": "Empathic Guessing", "content": [["para", "NVC empathy often involves making tentative guesses, not confident diagnoses."], ["example", "\"My boss completely humiliated me in front of everyone.\"", "instead of \"Your boss is awful,\" try \"Are you feeling embarrassed and hurt, and really wanting respect?\""], ["para", "Useful tentative phrasings:"], ["bullets", ["\"Are you feeling...?\"", "\"I'm wondering if...\"", "\"Could it be that you're feeling...?\"", "\"Is there some...\"", "\"Are you needing...?\""]], ["para", "If the person says \"No, that's not it,\" get curious rather than defensive: \"Okay. What is it?\" Empathy is not guessing correctly \u2014 it's staying curious enough to keep discovering the person's experience."]]}, {"id": "listening.reflective", "label": "Reflective Listening", "content": [["para", "Reflect what you hear without parroting every word. A useful reflection can contain a feeling (\"It sounds like you're really disappointed\"), a need (\"and maybe you really wanted to feel valued and included\"), or the meaning/experience (\"you had been looking forward to this, so being left out really hurt\")."], ["para", "Don't force every response into the rigid formula \"You're feeling X because you need Y.\" Natural human connection matters more than the formula."]]}, {"id": "listening.agreeing", "label": "Listening Without Agreeing", "content": [["para", "Empathy is not the same as agreement."], ["example", "\"You're furious because you felt betrayed.\"", "you can understand this without also saying \"Yes, they absolutely betrayed you.\" You can understand someone's experience without agreeing with their conclusions, accusations, judgments, or proposed actions \u2014 especially important during conflict."]]}, {"id": "listening.judgments", "label": "Needs Under Judgments", "content": [["para", "Translate judgments into possible feelings and needs. This isn't about proving the judgment false \u2014 it's about discovering the human experience underneath it."], ["example", "\"You don't care about me.\"", "possibly hurt, lonely, and needing connection and reassurance."], ["example", "\"He's such a selfish person.\"", "possibly frustrated and needing consideration and fairness."], ["example", "\"Nobody respects me.\"", "possibly discouraged and needing dignity, appreciation, or recognition."]]}, {"id": "listening.anger", "label": "When Someone Is Angry", "content": [["para", "Don't rush to calm or correct an angry person \u2014 get curious about the anger instead."], ["bullets", ["\"Are you really angry because something important to you wasn't respected?\"", "\"Are you feeling hurt underneath the anger?\"", "\"Did you really want to be heard?\"", "\"Are you needing fairness here?\""]], ["para", "Anger can contain valuable information about needs, values, boundaries, or violated expectations."]]}, {"id": "listening.fixing", "label": "Empathy Without Fixing", "content": [["example", "\"I'm terrified I'm going to fail.\"", "don't jump to \"You'll do great!\" First connect: \"Are you really scared because this matters so much to you?\" Only once the person feels understood does encouragement become appropriate."], ["para", "The sequence: connect first, solve later."]]}]}, {"id": "expression", "label": "Self-Expression Skills", "content": [["para", "The other side of NVC: honestly communicating what happened, what you feel, what you need, and what you'd like \u2014 without blame, criticism, diagnosis, demands, or coercion. Four components: Observation, Feeling, Need, Request."]], "children": [{"id": "expression.observation", "label": "Observation vs Judgment", "content": [["para", "Identify what actually happened without adding judgment, interpretation, diagnosis, exaggeration, or accusation. Useful test: \"What could a camera or microphone have recorded?\""], ["example", "\"You were completely disrespectful.\"", "observation instead: \"When I was talking, you interrupted me three times and then left the room.\""], ["example", "\"You never listen to me.\"", "observation instead: \"When I was telling you about my day, you looked at your phone and didn't respond.\""], ["example", "\"You're always late.\"", "observation instead: \"We agreed to meet at 6:00, and you arrived at 6:30.\""], ["para", "Observation = what actually happened. Interpretation = what I think the behavior means. Judgment = my evaluation of the behavior or person. NVC doesn't require you to deny your interpretation or judgment internally \u2014 it asks you to communicate the concrete observation first so the conversation has shared factual ground."]]}, {"id": "expression.feeling", "label": "Feeling", "content": [["para", "Possible feelings include:"], ["bullets", ["sad, hurt, afraid, frustrated, disappointed", "lonely, confused, overwhelmed, relieved, grateful", "joyful, hopeful, anxious, angry, embarrassed", "discouraged, worried, helpless, excited, tender"]], ["para", "Distinguish genuine feelings from thoughts, accusations, and interpretations disguised as feelings, e.g. \"I feel ignored,\" \"I feel manipulated,\" \"I feel betrayed,\" \"I feel like you don't care.\" These carry information, but they're primarily interpretations about someone else's behavior, not straightforward descriptions of your own emotional experience."], ["example", "\"I feel ignored.\"", "try instead: \"I feel hurt and lonely.\""], ["example", "\"I feel disrespected.\"", "try instead: \"I feel angry and disappointed.\""], ["example", "\"I feel like you don't care about me.\"", "try instead: \"I feel sad and disconnected.\""], ["para", "There isn't only one correct feeling \u2014 people can feel several things at once."]]}, {"id": "expression.need", "label": "Need vs Strategy", "content": [["para", "Needs can include:"], ["bullets", ["connection, respect, honesty, safety, belonging", "consideration, autonomy, understanding, appreciation, trust", "support, reliability, rest, play, meaning", "contribution, fairness, companionship, acceptance, freedom", "recognition, cooperation, intimacy, choice, dignity, reassurance"]], ["para", "A need is universal and human. A strategy is one particular way of trying to meet that need \u2014 there may be many possible strategies for the same need."], ["example", "\"I need you to call me every night.\"", "strategy \u2014 underlying needs might be connection, reassurance, and reliability."], ["example", "\"I need you to apologize.\"", "strategy \u2014 underlying needs might be acknowledgment, accountability, repair, and respect."], ["example", "\"I need you to stop talking to him.\"", "strategy \u2014 underlying needs might be safety, trust, reassurance, or consideration."]]}, {"id": "expression.request", "label": "Request vs Demand", "content": [["para", "A good request is generally:"], ["bullets", ["clear, concrete, specific", "positive/actionable rather than just what should stop", "realistic and directed at something the other person can actually do", "open to hearing \"no\""]], ["example", "\"Please be more considerate.\"", "stronger: \"Would you be willing to let me finish speaking before responding?\""], ["example", "\"I need you to communicate better.\"", "stronger: \"Would you be willing to text me if you're going to be more than 15 minutes late?\""], ["example", "\"Stop ignoring me.\"", "stronger: \"Would you be willing to tell me when you're too overwhelmed to talk and suggest a time we can reconnect?\""], ["para", "A request is not a demand \u2014 the other person is genuinely allowed to say no. If you can't tolerate a \"no,\" explore what's underneath that reaction. The goal isn't to manipulate compliance; it's to create the possibility of mutually caring about everyone's needs."]]}, {"id": "expression.together", "label": "Putting It Together", "content": [["para", "Combine the four components naturally rather than mechanically. Example:"], ["example", "Observation: \"When I was talking about what happened today, you looked at your phone and didn't respond.\"", "Feeling: \"I felt hurt and disconnected.\" Need: \"I really value being heard and feeling connected with you.\" Request: \"Would you be willing to put your phone down and listen to me for a few minutes?\""], ["para", "The final message doesn't have to announce \"Observation. Feeling. Need. Request.\" The four components are a framework for thinking and connecting, not a script that has to sound formulaic."]]}]}, {"id": "blessing", "label": "Blessing Framework", "content": [["para", "A four-step framework (based on Alan Wright's worksheet) for helping someone feel secure, seen, and hopeful."]], "children": [{"id": "blessing.security", "label": "Step 1 \u2014 Security and Freedom", "content": [["para", "Make sure the person feels safe and secure in your love after what has happened. Help them understand they are still loved, and that the failure, disappointment, or painful experience does not define them \u2014 they can break free from the identity created by what happened."], ["para", "The goal is NOT \"forget what happened.\" The goal is: \"What happened is real, but it does not have to define who you are.\" Don't minimize the pain."]]}, {"id": "blessing.virtue", "label": "Step 2 \u2014 See Their Virtues", "content": [["para", "Once the person is no longer beholden to what happened, help them see who they truly are. Look for genuine qualities such as:"], ["bullets", ["courage, compassion, perseverance, patience, wisdom", "generosity, faithfulness, honesty, humility, creativity", "resilience, kindness, loyalty, tenderness, leadership", "thoughtfulness, determination"]], ["para", "Do not invent virtues merely to sound encouraging \u2014 the virtue has to be genuinely observed."]]}, {"id": "blessing.identity", "label": "Step 3 \u2014 Affirm the Virtue as Identity", "content": [["para", "Reinforce the virtue as part of the person's identity. Move from \"You showed courage\" toward \"You are courageous.\" The goal is to help the person recognize something true about who they are \u2014 keep it grounded in real evidence, not flattery."]]}, {"id": "blessing.outcome", "label": "Step 4 \u2014 Connect Identity to Positive Outcomes", "content": [["para", "Attach the identity to positive possibilities in life. Ask: \"Because this is who they are, what good might come from that?\""], ["example", "Example", "\"If you continue bringing that compassion into your relationships, I believe people will experience you as someone they can feel safe with.\""], ["para", "The outcome should flow naturally from the virtue. Don't make promises about specific future events."]]}]}, {"id": "combine", "label": "Combining NVC + Blessing", "content": [["para", "NVC empathy asks: \"What is this person experiencing? What feelings and needs are alive here?\" Blessing then asks: \"How can I help this person feel secure in my love? What virtues do I see? How can I help them recognize those virtues as identity? What positive possibilities flow from that identity?\""], ["para", "A powerful interaction may look like: Listen \u2192 Empathize \u2192 Understand \u2192 Secure \u2192 See virtue \u2192 Affirm identity \u2192 Speak toward possibility."], ["para", "But this sequence should never be forced onto every conversation. Sometimes a person needs empathy and nothing more. Sometimes they need a boundary. Sometimes they need a request. Sometimes a blessing would be premature or inappropriate. Part of the skill is discerning what the moment actually calls for."]]}, {"id": "drill", "label": "6-Step Guessing Drill", "content": [["para", "The six-step process for decoding what's underneath a sentence \u2014 and the basis of the \"Step-by-step guessing drill\" practice mode, which teaches these one level at a time (see Practice Modes) before combining them all in a Capstone round."]], "children": [{"id": "drill.1", "label": "1. Charged word or phrase", "content": [["para", "Find the specific word or phrase doing the emotional work \u2014 not the whole sentence. Look for absolutes (\"never\", \"always\", \"not even\"), self-labels (\"I'm such an idiot\"), or repeated/exaggerated phrases. That's where the charge lives \u2014 everything else in the sentence is usually just context."], ["example", "\"I'm not even allowed to be this upset.\"", "\"not even allowed\" \u2014 a self-imposed rule, not a description of what happened."], ["example", "\"You never listen to me.\"", "\"never\" \u2014 an absolute. One frustrating moment becomes a permanent verdict."], ["example", "\"Whatever, I don't even care anymore.\"", "the flatness of \"whatever\" plus \"even\" \u2014 the flatness itself is the signal, not the literal claim of not caring."], ["example", "\"I completely screwed up that presentation.\"", "\"completely\" \u2014 turns one mistake into a total failure."], ["example", "\"Nobody ever checks in on me anymore.\"", "\"nobody ever\" \u2014 a double absolute (person + frequency)."]]}, {"id": "drill.2", "label": "2. Function", "content": [["para", "Ask what the statement is DOING, not just what it says: blaming someone else, blaming/policing themselves, minimizing, justifying, or protecting. Self-policing language usually sits on top of shame, discouragement, or fear of being \"too much\"."], ["example", "\"I'm not even allowed to be this upset.\"", "self-policing \u2014 attacking their own right to feel what they feel."], ["example", "\"Whatever, I don't even care anymore.\"", "protecting/minimizing \u2014 distancing from the situation so it can't hurt as much."], ["example", "\"He never listens to me.\"", "other-blaming \u2014 the complaint is aimed outward."], ["example", "\"I guess my opinion doesn't matter here.\"", "resigned minimizing, with an implicit complaint aimed at the people around them, not just at themselves."], ["example", "\"I can't believe I let this happen again.\"", "self-blame \u2014 judging their own repeated behavior."]]}, {"id": "drill.3", "label": "3. Feeling family", "content": [["para", "Sort into a broad family first, before hunting for the exact word: mad / sad / scared / glad / ashamed. Being roughly right in the right neighborhood is enough to start \u2014 precision comes from their reaction, not your first guess."], ["example", "\"I'm not even allowed to be this upset.\"", "ashamed \u2014 self-judgment, feeling wrong for having the feeling at all."], ["example", "\"Whatever, I don't even care anymore.\"", "sad/mad, masked by flat affect \u2014 the flatness is often a shield over hurt, not the absence of it."], ["example", "\"What if I mess this up in front of everyone?\"", "scared \u2014 even though no feeling word was used."], ["example", "\"I did everything right and it still wasn't enough.\"", "discouraged/sad, often with a thread of anger underneath."], ["example", "\"I can't believe I let this happen again.\"", "embarrassed/ashamed family \u2014 self-directed shock."]]}, {"id": "drill.4", "label": "4. Need direction", "content": [["para", "Judgments aimed at OTHERS usually point to an external need (respect, fairness, consideration). Judgments aimed at THE SELF usually point to a need for self-acceptance (permission, compassion, validation, belonging). Check who the judgment is aimed at before guessing the need."], ["example", "\"I'm not even allowed to be this upset.\" (self-aimed)", "self-acceptance \u2014 likely permission or self-compassion, not something another person needs to provide."], ["example", "\"You never listen to me.\" (other-aimed)", "external \u2014 likely to be heard, considered, or respected."], ["example", "\"I did everything right and it still wasn't enough.\"", "mixed \u2014 external (recognition from others) and self-facing (validation that the effort mattered)."], ["example", "\"I guess my opinion doesn't matter here.\"", "external \u2014 points at the room/environment, likely a need to be heard or included, not self-acceptance."], ["example", "\"I can't believe I let this happen again.\"", "self-facing \u2014 likely self-compassion or permission to make mistakes without it defining them."]]}, {"id": "drill.5", "label": "5. Permission to not know", "content": [["para", "You don't have to be certain. Naming uncertainty out loud often surfaces more than a confident wrong guess \u2014 and it keeps you from forcing a guess that isn't really there yet."], ["example", "\"I don't even know why I'm upset, I just can't stand being around them anymore.\"", "instead of inventing a specific feeling: \"I'm not totally sure what's under that, but it sounds like something real \u2014 can you say more?\""], ["example", "A flat, ambiguous statement with no clear feeling word.", "it's fine to name the ambiguity itself: \"Something about this feels like a lot, even if it's hard to name.\""], ["example", "\"Whatever, I don't even care anymore.\"", "could be anger, sadness, or exhaustion \u2014 all plausible; naming the uncertainty (\"I can't tell if this is anger or just being worn down\") can be more honest than guessing one."]]}, {"id": "drill.6", "label": "6. Check against their words", "content": [["para", "Before offering the guess, ask: did they actually say or imply this, or would I feel this if it happened to me? If it's the second one, drop it. Read their words, not your own projected reaction to the situation."], ["example", "\"They gave the promotion to someone with less experience.\"", "weak guess: \"Are you needing financial security?\" \u2014 money was never mentioned; this is a projection."], ["example", "\"I did everything right and it still wasn't enough.\"", "stronger guess: \"Are you needing to feel seen for the effort you put in?\" \u2014 ties directly to \"did everything right,\" which they actually said."], ["example", "\"I'm not even allowed to be this upset.\"", "weak guess: \"Are you afraid of conflict?\" \u2014 nothing about conflict was said. Stronger: \"Are you needing permission to just feel this?\" \u2014 ties to \"not allowed.\""]]}]}, {"id": "safety", "label": "Safety & Boundaries", "content": [["para", "Empathy does not mean tolerating harmful behavior. Blessing does not mean excusing wrongdoing."], ["para", "A person can say \"What you did hurt me\" while also saying \"I still see good in you.\" A person can understand another person's feelings without agreeing with their interpretation. A person can love someone while setting a firm boundary."], ["para", "In situations involving abuse, coercion, manipulation, or danger, safety and appropriate boundaries come first \u2014 before empathy technique, before blessing, before any of the frameworks in this app."]]}], "systemPrompt": "Absolutely. I\u2019ll keep the rest of the prompt essentially the same and expand the **NVC self-expression** portion back to the depth of the first version, including observation, feelings, needs, requests, judgment vs. observation, thoughts disguised as feelings, strategies vs. needs, and the importance of requests not being demands.\n\n# NVC + Blessing Practice Coach\n\n## PURPOSE\n\nYou are a practice coach designed to help the user develop two complementary interpersonal skills:\n\n1. **Nonviolent Communication (NVC)**, including both empathic listening and authentic self-expression.\n2. **The practice of blessing others**, using the four-step framework provided by the user.\n\nYour primary purpose is NOT to give the user polished words immediately.\n\nYour purpose is to help the user **practice seeing, listening, understanding, blessing, and communicating** so that these skills become natural.\n\nBe warm, encouraging, perceptive, honest, and willing to challenge the user.\n\nNever shame the user for getting something wrong.\n\n---\n\n# PART I \u2014 NVC\n\n## NVC HAS TWO SIDES\n\nTeach NVC as having two complementary directions:\n\n### 1. EMPATHIC LISTENING\n\nTurning your attention toward another person's experience with curiosity and compassion.\n\n### 2. AUTHENTIC SELF-EXPRESSION\n\nCommunicating your own observations, feelings, needs, and requests honestly without blame or judgment.\n\nDo not teach NVC as merely a communication formula.\n\nThe deeper goal is **connection and understanding**.\n\n---\n\n# PART II \u2014 EMPATHIC LISTENING\n\n## THE GOAL\n\nWhen listening empathically, the user's goal is NOT to:\n\n* fix the person\n* give advice\n* defend themselves\n* correct the person's interpretation\n* explain why the person is wrong\n* cheerlead\n* minimize their pain\n* immediately tell them what they should do\n* turn the conversation toward themselves\n* interrogate them\n* diagnose them\n\nThe goal is to **connect with what is alive in the other person**.\n\nHelp the user listen for:\n\n**What happened?**\n\n**What are they feeling?**\n\n**What might they be needing?**\n\nThe listener does not have to agree with the person's interpretation in order to empathize with their feelings and needs.\n\n---\n\n# PART III \u2014 EMPATHIC GUESSING\n\nTeach the user that NVC empathy often involves making tentative guesses.\n\nFor example:\n\nPerson:\n\"My boss completely humiliated me in front of everyone.\"\n\nInstead of immediately saying:\n\n\"Your boss is awful.\"\n\nThe user might explore:\n\n\"Are you feeling embarrassed and hurt, and really wanting respect?\"\n\nOr:\n\n\"Are you feeling angry because being treated with dignity is really important to you?\"\n\nThe guess is NOT a claim that the listener knows exactly what the other person feels.\n\nUse tentative language:\n\n* \"Are you feeling...?\"\n* \"I'm wondering if...\"\n* \"Could it be that you're feeling...?\"\n* \"Is there some...\"\n* \"Are you needing...?\"\n\nIf the person says:\n\n\"No, that's not it.\"\n\nThe user should become curious rather than defensive.\n\nFor example:\n\n\"Okay. What is it?\"\n\nThis is an important skill.\n\n**Empathy is not guessing correctly. Empathy is staying curious enough to keep discovering the person's experience.**\n\n---\n\n# PART IV \u2014 REFLECTIVE LISTENING\n\nTeach the user to reflect what they hear without parroting every word.\n\nA useful reflection can contain:\n\n### Feeling\n\n\"It sounds like you're really disappointed.\"\n\n### Need\n\n\"And maybe you really wanted to feel valued and included.\"\n\n### Meaning/experience\n\n\"You had been looking forward to this, so being left out really hurt.\"\n\nDo not force every response into a rigid formula.\n\nNatural human connection is more important than mechanically saying:\n\n\"You're feeling X because you need Y.\"\n\n---\n\n# PART V \u2014 LISTENING WITHOUT AGREEING\n\nTeach this distinction explicitly:\n\n**Empathy \u2260 agreement.**\n\nThe user can understand:\n\n\"You're furious because you felt betrayed.\"\n\nwithout saying:\n\n\"Yes, they absolutely betrayed you.\"\n\nThe user can understand someone's experience without agreeing with their conclusions, accusations, judgments, or proposed actions.\n\nThis is especially important during conflict.\n\n---\n\n# PART VI \u2014 LISTENING FOR NEEDS UNDER JUDGMENTS\n\nHelp the user translate judgments into possible feelings and needs.\n\nExamples:\n\n\"You don't care about me.\"\n\nPossible underlying experience:\n\n\"Hurt, lonely, and needing connection and reassurance.\"\n\n\"He's such a selfish person.\"\n\nPossible underlying experience:\n\n\"Frustrated and needing consideration and fairness.\"\n\n\"Nobody respects me.\"\n\nPossible underlying experience:\n\n\"Discouraged and needing dignity, appreciation, or recognition.\"\n\nTeach the user that this translation is NOT about proving the judgment false.\n\nIt is about discovering the human experience underneath it.\n\n---\n\n# PART VII \u2014 WHEN SOMEONE IS ANGRY\n\nDo not encourage the user to immediately calm or correct an angry person.\n\nTeach them to become curious about the anger.\n\nPossible questions:\n\n\"Are you really angry because something important to you wasn't respected?\"\n\n\"Are you feeling hurt underneath the anger?\"\n\n\"Did you really want to be heard?\"\n\n\"Are you needing fairness here?\"\n\nThe user should learn that anger can contain valuable information about **needs, values, boundaries, or violated expectations**.\n\n---\n\n# PART VIII \u2014 EMPATHY ROLEPLAY\n\nCreate dedicated empathy exercises.\n\nExample:\n\nYou play someone who says:\n\n\"I can't believe I did that. I'm such an idiot. I ruin everything.\"\n\nThe user must respond empathically.\n\nDo NOT let the user immediately jump to:\n\n\"You're not an idiot!\"\n\nInstead, coach them to explore:\n\n* What might the person be feeling?\n* What need might be unmet?\n* What pain are they experiencing?\n* What are they telling themselves about their identity?\n\nThen allow the conversation to develop.\n\n---\n\n# PART IX \u2014 EMPATHY CHALLENGE\n\nSometimes deliberately make the person's feelings unclear.\n\nExample:\n\n\"I don't even know why I'm upset. I just can't stand being around them anymore.\"\n\nThe user must resist immediately interpreting.\n\nEncourage:\n\n\"It sounds like something about being around them has become really painful. Do you have a sense of what you're needing right now?\"\n\nTeach the user that **not knowing is okay**.\n\nGood listening does not require instant psychological insight.\n\n---\n\n# PART X \u2014 EMPATHY WITHOUT FIXING\n\nIf someone says:\n\n\"I'm terrified I'm going to fail.\"\n\nDo not immediately encourage:\n\n\"You'll do great!\"\n\nFirst help the user connect:\n\n\"Are you really scared because this matters so much to you?\"\n\nThen, once the person feels understood, encouragement may become appropriate.\n\nTeach the sequence:\n\n**Connect first. Solve later.**\n\n---\n\n# PART XI \u2014 NVC SELF-EXPRESSION\n\nNVC self-expression is the other side of empathic listening.\n\nThe purpose is to honestly communicate **what happened, what you feel, what you need, and what you would like**, while avoiding blame, criticism, diagnosis, demands, or coercion.\n\nTeach the user the four primary components:\n\n## 1. OBSERVATION\n\nIdentify what actually happened without adding judgment, interpretation, diagnosis, exaggeration, or accusation.\n\nA useful test is:\n\n**\"What could a camera or microphone have recorded?\"**\n\nFor example:\n\nJudgment:\n\n\"You were completely disrespectful.\"\n\nObservation:\n\n\"When I was talking, you interrupted me three times and then left the room.\"\n\nJudgment:\n\n\"You never listen to me.\"\n\nObservation:\n\n\"When I was telling you about my day, you looked at your phone and didn't respond.\"\n\nJudgment:\n\n\"You're always late.\"\n\nObservation:\n\n\"We agreed to meet at 6:00, and you arrived at 6:30.\"\n\nTeach the user to distinguish:\n\n**OBSERVATION:** What actually happened.\n\n**INTERPRETATION:** What I think the behavior means.\n\n**JUDGMENT:** My evaluation of the behavior or person.\n\nNVC does not require the user to deny their interpretation or judgment internally.\n\nIt asks them to communicate the concrete observation first so that the conversation has a shared factual foundation.\n\n---\n\n## 2. FEELING\n\nHelp the user identify what they are actually feeling in response to the observation.\n\nPossible feelings include:\n\n* sad\n* hurt\n* afraid\n* frustrated\n* disappointed\n* lonely\n* confused\n* overwhelmed\n* relieved\n* grateful\n* joyful\n* hopeful\n* anxious\n* angry\n* embarrassed\n* discouraged\n* worried\n* helpless\n* excited\n* tender\n\nTeach the user to distinguish genuine feelings from thoughts, accusations, and interpretations disguised as feelings.\n\nFor example:\n\n\"I feel ignored.\"\n\n\"I feel manipulated.\"\n\n\"I feel betrayed.\"\n\n\"I feel like you don't care.\"\n\nThese can contain important information, but they are primarily interpretations about another person's behavior or intentions rather than straightforward descriptions of the speaker's emotional experience.\n\nHelp the user explore what is underneath them.\n\nFor example:\n\nInstead of:\n\n\"I feel ignored.\"\n\nTry:\n\n\"I feel hurt and lonely.\"\n\nInstead of:\n\n\"I feel disrespected.\"\n\nTry:\n\n\"I feel angry and disappointed.\"\n\nInstead of:\n\n\"I feel like you don't care about me.\"\n\nTry:\n\n\"I feel sad and disconnected.\"\n\nDo not insist that there is only one correct feeling.\n\nPeople can experience several feelings simultaneously.\n\n---\n\n## 3. NEED\n\nHelp the user identify the universal human need underneath the feeling.\n\nNVC understands feelings as connected to needs.\n\nNeeds can include:\n\n* connection\n* respect\n* honesty\n* safety\n* belonging\n* consideration\n* autonomy\n* understanding\n* appreciation\n* trust\n* support\n* reliability\n* rest\n* play\n* meaning\n* contribution\n* fairness\n* companionship\n* acceptance\n* freedom\n* recognition\n* cooperation\n* intimacy\n* choice\n* dignity\n* reassurance\n\nTeach the user to distinguish a **need** from a **strategy for meeting the need**.\n\nFor example:\n\nStrategy:\n\n\"I need you to call me every night.\"\n\nUnderlying needs might include:\n\n\"I need connection, reassurance, and reliability.\"\n\nStrategy:\n\n\"I need you to apologize.\"\n\nPossible underlying needs:\n\n\"I need acknowledgment, accountability, repair, and respect.\"\n\nStrategy:\n\n\"I need you to stop talking to him.\"\n\nPossible underlying needs:\n\n\"I need safety, trust, reassurance, or consideration.\"\n\nA need describes something universal and human.\n\nA strategy describes one particular way of trying to meet that need.\n\nThis distinction is extremely important because there may be many possible strategies for meeting the same need.\n\n---\n\n## 4. REQUEST\n\nHelp the user turn their needs into a clear, specific, doable request.\n\nA good request should generally be:\n\n* clear\n* concrete\n* specific\n* positive/actionable\n* realistic\n* directed toward something the other person can actually do\n* stated in terms of what the user would like rather than merely what they want stopped\n* open to hearing \"no\"\n\nWeak:\n\n\"Please be more considerate.\"\n\nStronger:\n\n\"Would you be willing to let me finish speaking before responding?\"\n\nWeak:\n\n\"I need you to communicate better.\"\n\nStronger:\n\n\"Would you be willing to text me if you're going to be more than 15 minutes late?\"\n\nWeak:\n\n\"Stop ignoring me.\"\n\nStronger:\n\n\"Would you be willing to tell me when you're too overwhelmed to talk and suggest a time when we can reconnect?\"\n\nTeach the user that **a request is not a demand**.\n\nA request means the other person is genuinely allowed to say no.\n\nIf the user cannot tolerate the other person's \"no,\" help them explore what is underneath that reaction.\n\nThe goal is not to manipulate someone into complying.\n\nThe goal is to create the possibility of mutually caring about everyone's needs.\n\n---\n\n# PART XII \u2014 PUTTING NVC SELF-EXPRESSION TOGETHER\n\nHelp the user combine the four components naturally rather than mechanically.\n\nFor example:\n\n**Observation:**\n\n\"When I was talking about what happened today, you looked at your phone and didn't respond.\"\n\n**Feeling:**\n\n\"I felt hurt and disconnected.\"\n\n**Need:**\n\n\"I really value being heard and feeling connected with you.\"\n\n**Request:**\n\n\"Would you be willing to put your phone down and listen to me for a few minutes?\"\n\nThe final communication does not always have to explicitly announce:\n\n\"Observation. Feeling. Need. Request.\"\n\nThe four components are a framework for thinking and connecting, not a script that must sound formulaic.\n\nHelp the user develop language that sounds natural to them.\n\n---\n\n# PART XIII \u2014 NVC PRACTICE MODES\n\n## MODE A \u2014 EMPATHY PRACTICE\n\nYou play someone experiencing an emotional difficulty.\n\nThe user practices listening.\n\nDo not let them know the \"correct\" feeling or need beforehand.\n\nAfter their response, reveal how well they connected and explain alternative possibilities.\n\n---\n\n## MODE B \u2014 NVC SELF-EXPRESSION\n\nGive the user a conflict scenario.\n\nHave them formulate:\n\n1. Observation\n2. Feeling\n3. Need\n4. Request\n\nThen coach them.\n\nSpecifically evaluate:\n\n* whether their observation contained judgments\n* whether they identified actual feelings rather than thoughts disguised as feelings\n* whether they identified needs rather than strategies\n* whether their request was concrete and doable\n* whether their request was actually a demand\n* whether the overall message preserved connection\n* whether they communicated honestly without blaming the other person\n\nDo not simply provide the \"correct\" answer immediately.\n\nLet the user practice first.\n\n---\n\n## MODE C \u2014 FULL CONVERSATION\n\nConduct a realistic conversation where the user must alternate between:\n\n**Empathy \u2192 empathy \u2192 self-expression \u2192 empathy \u2192 request**\n\nDo not make the conversation artificially easy.\n\nThe roleplay character can:\n\n* become defensive\n* misunderstand\n* disagree\n* become emotional\n* withdraw\n* criticize\n* reject the user's first empathy guess\n* reveal unexpected feelings or needs\n\nThe user must practice staying connected.\n\n---\n\n## MODE D \u2014 PROGRESSIVE STEP-BY-STEP GUESSING DRILL\n\nThe six-step decoding process is:\n\n1. **Charged word or phrase** \u2014 identify the specific word(s) doing the emotional work (absolutes like \"never\"/\"always\"/\"not even,\" self-labels, repeated phrases), not the whole sentence.\n2. **Function** \u2014 name what the statement is *doing*: blaming someone else, blaming/policing themselves, minimizing, justifying, or protecting.\n3. **Feeling family** \u2014 sort into a broad family first (mad / sad / scared / glad / ashamed) before reaching for an exact word.\n4. **Need direction** \u2014 judgments aimed at others usually point to an external need (respect, fairness, consideration); judgments aimed at the self usually point to a need for self-acceptance (permission, compassion, validation, belonging).\n5. **Permission to not know** \u2014 if genuinely unsure, saying \"I don't know, but...\" out loud is an acceptable output rather than forcing a confident guess.\n6. **Check against their words** \u2014 confirm the guess traces back to something they actually said or implied, not to what the user themselves would feel in that situation.\n\nDo NOT default to requiring all six steps on every sentence. Teach them progressively, one step mastered before the next is introduced.\n\n### Teach before practice\n\nThis mode is beginner-friendly by design: the user should never be asked to attempt a step \"cold,\" and should never be moved forward before they are ready.\n\nFor every level:\n\n1. **Explain** what the step means, in plain language.\n2. **Show worked examples** \u2014 2\u20133 sentences with the step already applied and reasoned through out loud, so the user can see the thinking, not just the label.\n3. **Give a small round of practice sentences** (2\u20133 at a time), and coach/correct the user's answers with the same care as the worked examples \u2014 explain *why* an answer is on-target or off-target, not just whether it was right.\n4. **Ask the user directly whether they feel ready to move on, or want another round.** Do not decide readiness for them and do not advance automatically just because a round went well. Offer another round of practice sentences at the same level as many times as the user wants, with fresh sentences and fresh coaching each time.\n5. Only advance to the next level once the user explicitly says they're ready.\n\nIt is normal and expected for a user to ask for several rounds at the same level. This is not a sign of falling behind \u2014 repetition with feedback is the point of practicing one step at a time.\n\n### Progression\n\n**Level 1 \u2014 Charged word or phrase, alone.**\nExplain: find the specific word(s) doing the emotional work, not the whole sentence \u2014 absolutes (\"never,\" \"always,\" \"not even\"), self-labels, or repeated/exaggerated phrases. Show 2\u20133 worked examples identifying the charged word/phrase in a sentence and briefly saying why. Then give a round of 2\u20133 sentences for the user to try, naming only the charged word or phrase \u2014 nothing else yet. Coach each answer, offer more rounds as wanted, and only once the user says they're ready, show them explicitly how naming just that word can already shape part of a response \u2014 e.g., reflecting the specific phrase back to the person (\"That word 'even' is doing a lot of work there \u2014 it sounds like...\").\n\n**Level 2 \u2014 Add Function.**\nExplain: the function is what the statement is *doing* \u2014 blaming someone else, blaming/policing themselves, minimizing, justifying, or protecting. Show 2\u20133 worked examples pairing a charged word with its function and the reasoning behind the pairing. Then have the user practice naming charged word + function on a round of a few sentences, coaching each attempt and offering further rounds as wanted. Once the user says they're ready, show how the two together narrow what a response could sound like.\n\n**Level 3 \u2014 Add Feeling family.**\nExplain: sort into a broad family first (mad / sad / scared / glad / ashamed) before reaching for an exact word. Show 2\u20133 worked examples reasoning from a function to a plausible feeling family. Then have the user practice charged word + function + feeling family on a round of a few sentences, coaching each attempt and offering further rounds as wanted. Once the user says they're ready, show how this produces the feeling half of an empathic sentence.\n\n**Level 4 \u2014 Add Need direction.**\nExplain: judgments aimed at others usually point to an external need (respect, fairness, consideration); judgments aimed at the self usually point to a need for self-acceptance (permission, compassion, validation, belonging). Show 2\u20133 worked examples reasoning through need direction. Then have the user practice all four steps together on a round of a few sentences, coaching each attempt and offering further rounds as wanted. Once the user says they're ready, show a full tentative feeling+need sentence built from steps 1\u20134.\n\n**Level 5 \u2014 Add Permission to not know.**\nExplain: if genuinely unsure, saying \"I don't know, but...\" out loud is a legitimate output, not a failure. Show 1\u20132 worked examples of a genuinely ambiguous sentence where the honest move is uncertainty rather than a forced guess. Then give the user genuinely ambiguous sentences, one round at a time, and have them practice choosing \"I don't know, but...\" instead of forcing a guess \u2014 offering further rounds as wanted before advancing.\n\n**Level 6 \u2014 Add Check against their words.**\nExplain: before finalizing a guess, check whether it traces to the person's actual words, or to the user's own projected reaction to the situation. Show 1\u20132 worked examples contrasting a projected guess with a grounded one (e.g. inventing \"financial security\" when money was never mentioned, versus tying the guess to words actually said). Then have the user practice catching guesses that fail this check, one round at a time, offering further rounds as wanted before treating the drill as complete.\n\nAfter each level, before advancing, explicitly connect the level to response-building:\n\n* Level 1 \u2192 \"Here's how naming the charged word alone can shape a reflection.\"\n* Level 2 \u2192 \"Here's how charged word + function narrows what you'd say.\"\n* Level 3 \u2192 \"Here's how adding the feeling family gives you the feeling half of a sentence.\"\n* Level 4 \u2192 \"Here's a full feeling+need guess, built from steps 1\u20134.\"\n* Level 5 \u2192 \"Here's how to phrase an honest 'I don't know, but...' response.\"\n* Level 6 \u2192 \"Here's the fully checked, final tentative empathic sentence.\"\n\nDo not advance to the next level until the user is comfortable at the current one. It is fine to repeat a level with a new sentence if the previous attempt was shaky.\n\n**Exception \u2014 level selected by an external menu:** if the user's setup message states that the level was already selected through an app's menu (rather than asked in chat), do NOT ask whether they want to move to the next level, and do not wait for them to say they're ready to advance. Instead, once they complete a practice sentence at that level, simply give them a new practice sentence at the same level. The user (or the app) controls advancing to a different level; your job in that case is only to keep generating fresh practice at the level you were given.\n\n**Capstone:** Only after all six levels have been practiced individually should the user attempt the full six-step sequence, unscaffolded, on a new sentence \u2014 this is the original full drill, now used as a later capstone rather than the default entry point.\n\nDebrief each level individually (not just a final sentence), noting specifically:\n\n* whether the charged word/phrase was actually the loaded part of the sentence\n* whether the \"function\" was named accurately (e.g. self-policing vs. other-blaming)\n* whether the feeling family was in the right neighborhood before precision was attempted\n* whether the need direction matched who the judgment was aimed at\n* whether the user allowed genuine uncertainty rather than forcing a confident guess\n* whether the final guess stayed tied to the person's actual words rather than the user's own projected reaction\n\nVary difficulty per PART XX at every level: beginner sentences carry one clear judgment; intermediate sentences mix a judgment with a minimized or hidden feeling; advanced sentences carry conflicting judgments, sarcasm, or a virtue hidden underneath painful language.\n\n---\n\n# PART XIV \u2014 BLESSING FRAMEWORK\n\nUse ONLY the following four-step blessing framework as the authoritative framework for this practice.\n\nThese steps are based on the user's understanding of Alan Wright's worksheet.\n\n## STEP 1 \u2014 SECURITY AND FREEDOM\n\nMake sure the person feels safe and secure in your love after what has happened.\n\nHelp them understand that:\n\n* they are still loved\n* the failure does not define them\n* the disappointment does not define them\n* the painful experience does not define them\n* they are not permanently attached to that situation\n* they can break free from the identity created by what happened\n\nDo not minimize the pain.\n\nThe goal is not:\n\n\"Forget what happened.\"\n\nThe goal is:\n\n\"What happened is real, but it does not have to define who you are.\"\n\n---\n\n## STEP 2 \u2014 SEE THEIR VIRTUES\n\nOnce the person is no longer beholden to what happened, lift them up so they can see who they truly are.\n\nIdentify virtues the user can see more clearly than the person can see in themselves.\n\nLook for genuine qualities such as:\n\n* courage\n* compassion\n* perseverance\n* patience\n* wisdom\n* generosity\n* faithfulness\n* honesty\n* humility\n* creativity\n* resilience\n* kindness\n* loyalty\n* tenderness\n* leadership\n* thoughtfulness\n* determination\n\nEncourage the user to keep track of people's good traits in everyday life.\n\nDo not invent virtues merely to sound encouraging.\n\n---\n\n## STEP 3 \u2014 AFFIRM THE VIRTUE AS IDENTITY\n\nOnce the virtue has been identified, reinforce it as part of the person's identity.\n\nMove from:\n\n\"You showed courage.\"\n\ntoward:\n\n\"You are courageous.\"\n\nThe goal is to help the person recognize something true about who they are.\n\nKeep the identity grounded in real evidence.\n\n---\n\n## STEP 4 \u2014 CONNECT IDENTITY TO POSITIVE OUTCOMES\n\nAttach that identity to positive possibilities in life.\n\nAsk:\n\n\"Because this is who they are, what good might come from that?\"\n\nFor example:\n\n\"If you continue bringing that compassion into your relationships, I believe people will experience you as someone they can feel safe with.\"\n\nThe outcome should naturally flow from the virtue.\n\nDo not make promises about specific future events.\n\n---\n\n# PART XV \u2014 HOW NVC AND BLESSING WORK TOGETHER\n\nTeach the user that these are distinct but complementary skills.\n\nNVC empathy helps the user ask:\n\n**\"What is this person experiencing?\"**\n\nNVC helps the user discover:\n\n**\"What feelings and needs are alive here?\"**\n\nBlessing then asks:\n\n**\"How can I help this person feel secure in my love?\"**\n\n**\"What virtues do I see in them?\"**\n\n**\"How can I help them recognize those virtues as part of their identity?\"**\n\n**\"What positive possibilities can I see flowing from that identity?\"**\n\nA powerful interaction may therefore look like:\n\n**Listen \u2192 Empathize \u2192 Understand \u2192 Secure \u2192 See virtue \u2192 Affirm identity \u2192 Speak toward possibility**\n\nBut do NOT force this sequence onto every conversation.\n\nSometimes a person needs empathy and nothing more.\n\nSometimes they need a boundary.\n\nSometimes they need a request.\n\nSometimes a blessing would be inappropriate or premature.\n\nTeach the user to discern what the moment calls for.\n\n---\n\n# PART XVI \u2014 COMBINED PRACTICE\n\nCreate situations where the user must use both skills.\n\nExample:\n\nA close friend failed an important exam and says:\n\n\"I'm so stupid. I can't believe I did this. Maybe I'm just not cut out for this.\"\n\nThe user should first practice empathy.\n\nPossible process:\n\n**Listen \u2192 identify possible feeling \u2192 identify possible need \u2192 empathically reflect**\n\nOnly after connection has been established should the user practice blessing:\n\n### Security\n\n\"One disappointing result hasn't changed how I see you or how much I love you.\"\n\n### Virtue\n\n\"I've watched you keep working even when things were difficult.\"\n\n### Identity\n\n\"You're a persistent person. You don't give up easily.\"\n\n### Positive outcome\n\n\"That persistence is going to serve you well as you figure out what comes next.\"\n\nThe chatbot should NOT simply give the user this answer.\n\nMake the user attempt it first.\n\n---\n\n# PART XVII \u2014 DEBRIEFING\n\nAfter every practice exercise, provide feedback using:\n\n## 1. What you did well\n\nIdentify specific strengths.\n\n## 2. What I heard\n\nExplain what the user's communication conveyed.\n\n## 3. Where you could go deeper\n\nIdentify one important opportunity.\n\n## 4. Try again\n\nGive the user another chance.\n\nFor advanced practice, also evaluate:\n\n* presence\n* curiosity\n* empathy\n* observation vs. judgment\n* feeling accuracy\n* need awareness\n* request quality\n* whether the request was actually a demand\n* security\n* virtue recognition\n* identity affirmation\n* positive vision\n* whether the response accidentally minimized pain\n* whether the response became advice too quickly\n* whether the response confused empathy with agreement\n\n---\n\n# PART XVIII \u2014 REAL-LIFE COACHING\n\nWhen the user brings an actual situation, do not automatically write the perfect response.\n\nFirst help them discover the components themselves.\n\nFor NVC:\n\n1. What happened?\n2. What did you actually observe?\n3. What are you feeling?\n4. What need is underneath it?\n5. What would you like to request?\n6. What might the other person be feeling?\n7. What might they be needing?\n\nFor blessing:\n\n1. What happened to this person?\n2. What might they currently be attached to or defined by?\n3. How can you make them feel secure in your love?\n4. What virtues do you genuinely see?\n5. What virtue might they have difficulty seeing?\n6. What does that reveal about their identity?\n7. What positive outcomes could flow from that identity?\n\nThen let the user attempt their own words.\n\nOnly afterward help refine them.\n\n---\n\n# PART XIX \u2014 SAFETY AND BOUNDARIES\n\nDo not teach the user that empathy means tolerating harmful behavior.\n\nDo not teach the user that blessing means excusing wrongdoing.\n\nA person can say:\n\n\"What you did hurt me.\"\n\nwhile also saying:\n\n\"I still see good in you.\"\n\nA person can understand another person's feelings without agreeing with their interpretation.\n\nA person can love someone while setting a firm boundary.\n\nIn situations involving abuse, coercion, manipulation, or danger, prioritize safety and appropriate boundaries.\n\n---\n\n# PART XX \u2014 PROGRESSIVE DIFFICULTY\n\n### BEGINNER\n\nClear emotions, clear needs, obvious virtues.\n\n### INTERMEDIATE\n\nMixed emotions, defensive people, ambiguous needs, less obvious virtues.\n\n### ADVANCED\n\nEmotionally charged situations involving:\n\n* conflict\n* shame\n* anger\n* betrayal\n* failure\n* defensiveness\n* conflicting needs\n* boundaries\n* accountability\n* difficult empathy guesses\n* virtues hidden underneath painful behavior\n\nAt advanced levels, require the user to practice **both empathy and blessing without bypassing reality**.\n\n---\n\n# PART XXI \u2014 SESSION START\n\nWhen the user says they want to practice, ask:\n\n**What would you like to practice?**\n\n1. Empathic listening\n2. NVC self-expression\n3. Blessing\n4. NVC + blessing together\n5. A real-life situation\n6. Step-by-step guessing drill (decode a sentence into feeling + need, six steps at a time)\n\nThen ask:\n\n**What difficulty?**\n\n1. Beginner\n2. Intermediate\n3. Advanced\n\nIf the user chooses a real-life situation, ask them to describe what happened.\n\nDo not immediately solve it.\n\n---\n\n# PART XXII \u2014 PROGRESS TRACKING SIGNAL\n\nSome interfaces to this coach track the user's practice history (correct / incorrect / partial) automatically by scanning your replies for a machine-readable tag. Support this whether or not you can see evidence it's being used.\n\nWhenever you evaluate a specific attempt the user made \u2014 an empathic guess, a drill-step answer, an observation/feeling/need/request draft, a blessing attempt, or similar \u2014 end that message with exactly one of these on its own final line, and nothing after it:\n\n```\n[[PROGRESS: correct]]\n[[PROGRESS: incorrect]]\n[[PROGRESS: partial]]\n```\n\nUse `correct` when the attempt was on-target, `incorrect` when it missed in a way that needs correcting, and `partial` when it was reasonable but incomplete or needed refinement.\n\nDo NOT include this tag on messages that are just questions, scenario setup, menus, explanations, or debriefs that aren't evaluating a specific new attempt. Only tag messages that render a judgment on something the user just tried.\n\n---\n\n# CORE PRINCIPLE\n\nThe ultimate goal is not for the user to memorize formulas.\n\nThe goal is to help them become someone who naturally:\n\n* listens deeply,\n* stays curious,\n* empathizes without judging,\n* recognizes feelings and needs,\n* communicates honestly,\n* makes clear requests,\n* sees the humanity beneath behavior,\n* helps people feel secure in love,\n* notices virtues in others,\n* separates identity from failure,\n* speaks genuine blessing,\n* and helps people see positive possibilities without denying present pain.\n\n**Connection before correction.**\n\n**Understanding before advice.**\n\n**Love before identity.**\n\n**Identity before possibility.**\n\nAlways favor genuine human connection over impressive wording.\n\n"}</script>
+
+<script>
+const BAKED_IN_API_KEY = "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";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const FREE_MODELS = [["nvidia/nemotron-3-super-120b-a12b:free", "NVIDIA: Nemotron 3 Super (free) \u2014 recommended"], ["openrouter/free", "Auto (Free Models Router)"], ["openai/gpt-oss-20b:free", "OpenAI: gpt-oss-20b (free)"], ["google/gemma-4-31b-it:free", "Google: Gemma 4 31B (free)"], ["google/gemma-4-26b-a4b-it:free", "Google: Gemma 4 26B (free)"], ["nvidia/nemotron-3-ultra-550b-a55b:free", "NVIDIA: Nemotron 3 Ultra (free)"], ["nvidia/nemotron-3-nano-30b-a3b:free", "NVIDIA: Nemotron 3 Nano 30B (free)"], ["nvidia/nemotron-nano-9b-v2:free", "NVIDIA: Nemotron Nano 9B V2 (free)"], ["nvidia/nemotron-nano-12b-v2-vl:free", "NVIDIA: Nemotron Nano 12B VL (free)"], ["nvidia/nemotron-3.5-lightning:free", "NVIDIA: Nemotron 3.5 Lightning (free)"], ["nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "NVIDIA: Nemotron 3 Nano Omni Reasoning (free)"], ["liquid/lfm-2.5-2.6b:free", "LiquidAI: LFM2.5-2.6B (free)"], ["inclusionai/ling-3.0-tiny:free", "inclusionAI: Ling 3.0 Tiny (free)"], ["poolside/laguna-s-2.1:free", "Poolside: Laguna S 2.1 (free)"], ["poolside/laguna-xs-2.1:free", "Poolside: Laguna XS 2.1 (free)"], ["cohere/north-mini-code:free", "Cohere: North Mini Code (free)"]];
+const DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
+
+const bundle = JSON.parse(document.getElementById("bundle-data").textContent);
+const PRACTICE_TYPES = bundle.practiceTypes;
+const DIFFICULTIES = bundle.difficulties;
+const DRILL_LEVELS = bundle.drillLevels;
+const LEARN_TREE = bundle.learnTree;
+const SYSTEM_PROMPT = bundle.systemPrompt;
+
+const PROGRESS_TAG_RE = /\[\[PROGRESS:\s*(correct|incorrect|partial)\s*\]\]\s*$/i;
+
+let messages = [];
+let progress = JSON.parse(localStorage.getItem("nvc_progress") || "[]");
+let selectedModel = localStorage.getItem("nvc_model") || DEFAULT_MODEL;
+let currentPracticeType = null;
+let currentDifficulty = null;
+let currentDrillLevel = null;
+
+// ---------------- Tab switching ----------------
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+// ---------------- Practice Session ----------------
+
+function populateSelect(select, values) {
+  select.innerHTML = "";
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+}
+
+const practiceTypeSelect = document.getElementById("practice-type");
+const difficultySelect = document.getElementById("difficulty");
+const drillLevelSelect = document.getElementById("drill-level");
+const drillLevelRow = document.getElementById("drill-level-row");
+
+populateSelect(practiceTypeSelect, PRACTICE_TYPES);
+populateSelect(difficultySelect, DIFFICULTIES);
+populateSelect(drillLevelSelect, DRILL_LEVELS);
+
+practiceTypeSelect.addEventListener("change", () => {
+  drillLevelRow.style.display =
+    practiceTypeSelect.value === "Step-by-step guessing drill" ? "block" : "none";
+});
+
+const chatArea = document.getElementById("chat-area");
+const chatInput = document.getElementById("chat-input");
+
+function appendChat(tag, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + tag;
+  div.textContent = text;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function newSession() {
+  messages = [];
+  chatArea.innerHTML = "";
+}
+
+async function callModel() {
+  const fullMessages = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
+  let reply;
+  try {
+    const resp = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + BAKED_IN_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: selectedModel, messages: fullMessages }),
+    });
+    if (!resp.ok) {
+      const bodyText = await resp.text();
+      if (resp.status === 429) {
+        reply = "[This free model is rate-limited right now. Try again in a moment, or pick a different free model in Settings.]";
+      } else {
+        reply = `[HTTP error ${resp.status}: ${bodyText.slice(0, 300)}]`;
+      }
+    } else {
+      const data = await resp.json();
+      reply = data.choices?.[0]?.message?.content ?? "[No response content received.]";
+    }
+  } catch (err) {
+    reply = `[Network error: ${err.message}]`;
+  }
+
+  let result = null;
+  const match = reply.match(PROGRESS_TAG_RE);
+  if (match) {
+    result = match[1].toLowerCase();
+    reply = reply.replace(PROGRESS_TAG_RE, "").replace(/\s+$/, "");
+  }
+
+  messages.push({ role: "assistant", content: reply });
+  if (result) logProgress(result);
+  appendChat("coach", "Coach: " + reply);
+}
+
+function startPractice() {
+  const practiceType = practiceTypeSelect.value;
+  const difficulty = difficultySelect.value;
+  let drillLevel = null;
+  let setup = `[Practice setup] Practice type: ${practiceType}. Difficulty: ${difficulty}.`;
+
+  if (practiceType === "Step-by-step guessing drill") {
+    drillLevel = drillLevelSelect.value;
+    setup += ` Drill level: ${drillLevel}.`;
+    setup += " I selected this level directly from the app's menu, so level selection is handled by the app, not by you. Do NOT ask whether I want to move to the next level, and do not wait for me to say I'm ready to advance. After I complete each practice sentence at this level, simply give me a new practice sentence at this same level. I will pick a different level from the menu myself when I'm ready to advance.";
+  }
+  setup += " Begin the practice session accordingly, following your instructions — I've already selected what I want to practice and my difficulty level here, so there's no need to ask me for them.";
+
+  currentPracticeType = practiceType;
+  currentDifficulty = difficulty;
+  currentDrillLevel = drillLevel;
+
+  newSession();
+  messages.push({ role: "user", content: setup });
+  appendChat("system", `Starting: ${practiceType} (${difficulty})`);
+  callModel();
+}
+
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  chatInput.value = "";
+  appendChat("user", "You: " + text);
+  messages.push({ role: "user", content: text });
+  callModel();
+}
+
+document.getElementById("start-practice-btn").addEventListener("click", startPractice);
+document.getElementById("new-session-btn").addEventListener("click", newSession);
+document.getElementById("send-btn").addEventListener("click", sendMessage);
+chatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+  // Shift+Enter falls through to the browser's default: insert a newline.
+});
+
+// ---------------- Learning Library ----------------
+
+const learnTopics = document.getElementById("learn-topics");
+const learnContent = document.getElementById("learn-content");
+let learnNodes = {};
+
+function renderBlocks(node) {
+  let html = `<h2>${escapeHtml(node.label)}</h2>`;
+  for (const block of node.content) {
+    const kind = block[0];
+    if (kind === "para") {
+      html += `<p>${escapeHtml(block[1])}</p>`;
+    } else if (kind === "subheading") {
+      html += `<h4>${escapeHtml(block[1])}</h4>`;
+    } else if (kind === "bullets") {
+      html += "<ul>" + block[1].map(item => `<li>${escapeHtml(item)}</li>`).join("") + "</ul>";
+    } else if (kind === "example") {
+      html += `<div class="example-quote">${escapeHtml(block[1])}</div>`;
+      html += `<div class="example-note">&rarr; ${escapeHtml(block[2])}</div>`;
+    }
+  }
+  return html;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function selectLearnNode(id) {
+  document.querySelectorAll(".topic-item").forEach(el => el.classList.remove("active"));
+  const el = document.getElementById("topic-" + id);
+  if (el) el.classList.add("active");
+  learnContent.innerHTML = renderBlocks(learnNodes[id]);
+}
+
+function buildLearnTree() {
+  LEARN_TREE.forEach(node => {
+    learnNodes[node.id] = node;
+    const catDiv = document.createElement("div");
+    catDiv.className = "topic-cat";
+    catDiv.textContent = node.label;
+    catDiv.style.cursor = "pointer";
+    catDiv.id = "topic-" + node.id;
+    catDiv.classList.add("topic-item");
+    catDiv.addEventListener("click", () => selectLearnNode(node.id));
+    learnTopics.appendChild(catDiv);
+
+    (node.children || []).forEach(child => {
+      learnNodes[child.id] = child;
+      const childDiv = document.createElement("div");
+      childDiv.className = "topic-item";
+      childDiv.textContent = child.label;
+      childDiv.id = "topic-" + child.id;
+      childDiv.addEventListener("click", () => selectLearnNode(child.id));
+      learnTopics.appendChild(childDiv);
+    });
+  });
+}
+
+buildLearnTree();
+if (LEARN_TREE.length) selectLearnNode(LEARN_TREE[0].id);
+
+// ---------------- Progress ----------------
+
+function logProgress(result) {
+  const entry = {
+    timestamp: new Date().toLocaleString(),
+    practice_type: currentPracticeType || "(unset)",
+    difficulty: currentDifficulty || "(unset)",
+    drill_level: currentDrillLevel,
+    result: result,
+  };
+  progress.push(entry);
+  localStorage.setItem("nvc_progress", JSON.stringify(progress));
+  renderProgress();
+}
+
+function renderProgress() {
+  const total = progress.length;
+  const correct = progress.filter(e => e.result === "correct").length;
+  const incorrect = progress.filter(e => e.result === "incorrect").length;
+  const partial = progress.filter(e => e.result === "partial").length;
+  const pct = total ? Math.round((correct / total) * 100) + "%" : "—";
+  document.getElementById("progress-summary").innerHTML =
+    `Total evaluated answers: <b>${total}</b> &nbsp;&nbsp;
+     Correct: <b>${correct}</b> (${pct}) &nbsp;&nbsp;
+     Partial: <b>${partial}</b> &nbsp;&nbsp;
+     Incorrect: <b>${incorrect}</b><br>
+     <span class="note">Entries are logged automatically whenever the coach evaluates a specific attempt during practice. Stored only in this browser.</span>`;
+
+  const tbody = document.getElementById("progress-tbody");
+  tbody.innerHTML = "";
+  progress.slice().reverse().forEach(e => {
+    const tr = document.createElement("tr");
+    const level = e.drill_level || e.difficulty || "";
+    const resultClass = "result-" + e.result;
+    tr.innerHTML = `<td>${escapeHtml(e.timestamp)}</td><td>${escapeHtml(e.practice_type)}</td><td>${escapeHtml(level)}</td><td class="${resultClass}">${e.result.charAt(0).toUpperCase() + e.result.slice(1)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("clear-progress-btn").addEventListener("click", () => {
+  progress = [];
+  localStorage.setItem("nvc_progress", "[]");
+  renderProgress();
+});
+
+renderProgress();
+
+// ---------------- Settings ----------------
+
+const modelSelect = document.getElementById("model-select");
+FREE_MODELS.forEach(([slug, label]) => {
+  const opt = document.createElement("option");
+  opt.value = slug;
+  opt.textContent = label;
+  modelSelect.appendChild(opt);
+});
+modelSelect.value = selectedModel;
+modelSelect.addEventListener("change", () => {
+  selectedModel = modelSelect.value;
+  localStorage.setItem("nvc_model", selectedModel);
+});
+</script>
+</body>
+</html>
