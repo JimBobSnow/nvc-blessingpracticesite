@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=NVC Practice Coach
+Comment=NVC + Blessing practice coach — Practice Session, Learning Library, and Settings
+Exec=python3 /home/user/AI/nvc-practice-app/app.py
+Icon=/home/user/AI/nvc-practice-app/icon.png
+Terminal=false
+Categories=Utility;Education;
+StartupWMClass=NVC + Blessing Practice Coach
